@@ -18,7 +18,7 @@ public interface IGameSessionManager
     GameSession? RemoveSession(string sessionId);
     
     // Leave a session.
-    void LeaveSession(string sessionId);
+    void LeaveSession(string clientId);
     
     // Return the number of active sessions
     int GetSessionCount();

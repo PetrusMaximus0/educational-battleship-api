@@ -66,7 +66,13 @@ public class GameSessionManager : IGameSessionManager
 
         // If both the Host ID and Guest ID are null, there is no client connected to this game session.
         // Clear the session if no client is connected. 
-        if(session.HostId == null && session.GuestId == null) _gameSessions.TryRemove(session.Id, out _);
+        if(session.HostId == null && session.GuestId == null)
+        {
+            _gameSessions.TryRemove(session.Id, out _);
+            Console.WriteLine($"Session with id: {session.Id} removed.");
+        };
+        
+        Console.WriteLine($"Client with id: {clientId} left session with id: {session.Id}");
     }
     public int GetSessionCount ()
     {

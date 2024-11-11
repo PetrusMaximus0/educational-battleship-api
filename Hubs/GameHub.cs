@@ -19,10 +19,11 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         // Join the host to a SignalR Group with the session ID as the group name.
         await Groups.AddToGroupAsync(Context.ConnectionId, session.Id);
 
+        Console.WriteLine($"Sending Session Id: {session.Id}");
         // Return the session ID to the host client.
         await Clients.Client(Context.ConnectionId)
             .SendAsync("ReceiveSessionId", session.Id);
-        Console.WriteLine($"Sending Session Id: {session.Id}");
+        
         Console.WriteLine($"There are currently {_gameSessionManager.GetSessionCount()} sessions ongoing.");
     }
 
@@ -32,21 +33,25 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         var session = _gameSessionManager.GetSessionById(sessionId);
         if (session != null )
         {
-            // Set the session guest id.
-            if (session.HostId == Context.ConnectionId) // host can not join as client.
+            
+            if (session.HostId == Context.ConnectionId)
             {
-                await Clients.Caller.SendAsync("Error", "The host can not join as a client.");
-                throw new HubException("The host is already connected.");
+                Console.WriteLine($"Host joined Session Id: {session.Id}");
             }
-            //
-            session.GuestId = Context.ConnectionId;
-            
-            // Join the guest to the same SignalR group as the host
-            await Groups.AddToGroupAsync(Context.ConnectionId, session.Id);
-            
+            else if (session.GuestId == null)
+            {
+                Console.WriteLine($"Guest joined Session Id: {session.Id}");
+                session.GuestId = Context.ConnectionId;
+                // Join the guest to the same SignalR group as the host
+                await Groups.AddToGroupAsync(Context.ConnectionId, session.Id);
+            }
+
             // Sends empty boards and trigger the game setup stage on both clients.
-            await Clients.Groups(session.Id)
-                .SendAsync("BeginGameSetup", session.CurrentGameState.HostBoardData);
+            if (session.HostId != null && session.GuestId != null)
+            {
+                await Clients.Groups(session.Id)
+                    .SendAsync("BeginGameSetup", session.CurrentGameState.HostBoardData);
+            }
         }
         else
         {
@@ -62,6 +67,11 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             await Clients.Caller.SendAsync("Error", "Session Not Found");
         else 
             await Clients.Group(sessionId).SendAsync("sessionClosed", session.CurrentGameState);
+    }
+
+    public void LeaveSession()
+    {
+        _gameSessionManager.LeaveSession(Context.ConnectionId);
     }
     
     public override async Task OnConnectedAsync()
