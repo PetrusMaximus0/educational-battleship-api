@@ -1,4 +1,7 @@
+
+using api.Game;
 using api.Hubs;
+using api.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,9 +12,9 @@ builder.Services.AddSignalR();
 
 builder.Services.AddCors(opt =>
 {
-    opt.AddPolicy("ReactApp", builder =>
+    opt.AddPolicy("ReactApp", policyBuilder =>
     {
-        builder
+        policyBuilder
             .WithOrigins("http://localhost:5173")
             .AllowAnyMethod()
             .AllowAnyHeader()
@@ -19,10 +22,14 @@ builder.Services.AddCors(opt =>
     });
 });
 
+builder.Services.AddSingleton<IGameSessionManager, GameSessionManager>();
+
+// Service for managing game sessions.
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();
-app.MapHub<BattleSpeakHub>("/battlespeak");
+app.MapHub<GameHub>("/battlespeak");
 app.UseCors("ReactApp");
 
 //
