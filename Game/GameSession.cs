@@ -17,18 +17,31 @@ public class GameSession : IGameSession
     // Store the session game state.
     public GameState CurrentGameState { get; } = new GameState();
     
-    public GameState InitializeGameState(string[] rowTags, string[] colTags)
+    // Store the fleet template
+    public List<ShipData> Fleet { get; } = [];
+    
+    // Constructor
+    public GameSession(string hostId, string[] rowTags, string[] colTags)
+    {
+        HostId = hostId;
+        InitializeGameState(rowTags, colTags);
+        GenerateFleet(rowTags.Length, colTags.Length );
+    }
+    
+    private void InitializeGameState(string[] rowTags, string[] colTags)
     {
         CurrentGameState.ColTags = colTags;
         CurrentGameState.RowTags = rowTags;
-        CurrentGameState.GuestBoardData = GenerateEmptyBoard(colTags.Length, rowTags.Length);
-        CurrentGameState.HostBoardData = GenerateEmptyBoard(colTags.Length, rowTags.Length);
-        
-        return CurrentGameState;
+        CurrentGameState.GuestBoardData = GenerateEmptyBoard(rowTags.Length, colTags.Length );
+        CurrentGameState.HostBoardData = GenerateEmptyBoard(rowTags.Length, colTags.Length);
     }
 
+    // A number obtain from the ratio between the number of cells in a 8x8 board
+    // and the classic number of cell occupying ship parts in battleship.
+    private const double ShipToAreaRatio = 17.0 / 64.0 ;
+    
     // Generate a ship pool based 
-    public List<ShipData> GenerateFleet()
+    private void GenerateFleet(int boardHeight, int boardWidth)
     {   
         // Create a default ship list.
         List<ShipData> availableShips =
@@ -41,41 +54,36 @@ public class GameSession : IGameSession
         ];
 
         // Sort default ship list.
-        availableShips.Sort(CompareShips);
+        availableShips.Sort((ship1,ship2)=> ship1.Size.CompareTo(ship2.Size));
         
         // Obtain available points to generate ships.
-        const double shipToAreaRatio = 17.0 / 64.0 ;
-        var shipPoints = CurrentGameState.ColTags.Length * CurrentGameState.RowTags.Length * shipToAreaRatio;  // We are okay with truncating the remainder.
+
+        var shipPoints = boardWidth * boardHeight * ShipToAreaRatio;  // We are okay with truncating the remainder.
        
         // Allocate the fleet from the available ships.
-        List<ShipData> fleet = [];
+        // Reset fleet if current.
+        Fleet.Clear();
         foreach (var ship in availableShips)
         {
             if (shipPoints >= ship.Size)
             {
                 shipPoints -= ship.Size;
-                fleet.Add(ship);
+                Fleet.Add(ship);
             }
             else
             {
                 break;
             }
         }
-        
-        // Return allocated fleet.
-        return fleet;
     }
 
-    private static int CompareShips(ShipData ship1, ShipData ship2)
+    public void ReInitializeSession(string[] rowTags, string[] colTags)
     {
-        return ship1.Size > ship2.Size 
-            ? 1 
-            : ship1.Size < ship2.Size 
-                ? -1 
-                : 0;
+        InitializeGameState(rowTags, colTags);
+        GenerateFleet(rowTags.Length, colTags.Length);
     }
     
-    private static CellData[] GenerateEmptyBoard(int width, int height)
+    private static CellData[] GenerateEmptyBoard(int height, int width)
     {
         var tempBoardData = new CellData[width * height];
         for (var i = 0; i < width * height ; i++)

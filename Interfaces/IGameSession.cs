@@ -8,6 +8,5 @@ public interface IGameSession
     string? HostId {get; set;}
     string? GuestId {get; set;}
     GameState CurrentGameState {get; }
-    GameState InitializeGameState(string[] colTags, string[] rowTags);
-    List<ShipData> GenerateFleet();
+    List<ShipData> Fleet {get; }
 }

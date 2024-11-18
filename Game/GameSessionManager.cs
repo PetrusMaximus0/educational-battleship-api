@@ -13,16 +13,12 @@ public class GameSessionManager : IGameSessionManager
         foreach (var sess in _gameSessions.Values)
         {
             if (sess.HostId != hostId) continue;
-            sess.InitializeGameState(rowTags, colTags);
+            sess.ReInitializeSession(rowTags, colTags);
             return sess;
         }
         
         // Create a new session.
-        var session = new GameSession
-        {
-            HostId = hostId
-        };
-        session.InitializeGameState(rowTags, colTags);
+        var session = new GameSession(hostId, rowTags, colTags);
         _gameSessions[session.Id] = session;
         
         Console.WriteLine("Returning new session");

@@ -54,7 +54,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
                         session.CurrentGameState.RowTags, 
                         session.CurrentGameState.ColTags, 
                         session.CurrentGameState.HostBoardData,
-                        session.GenerateFleet()                       
+                        session.Fleet                     
                         );
             }
         }
