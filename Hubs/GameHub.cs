@@ -50,7 +50,12 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             if (session.HostId != null && session.GuestId != null)
             {
                 await Clients.Groups(session.Id)
-                    .SendAsync("BeginGameSetup", session.CurrentGameState.HostBoardData);
+                    .SendAsync("BeginGameSetup", 
+                        session.CurrentGameState.RowTags, 
+                        session.CurrentGameState.ColTags, 
+                        session.CurrentGameState.HostBoardData,
+                        session.GenerateFleet()                       
+                        );
             }
         }
         else
