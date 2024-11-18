@@ -32,7 +32,7 @@ public class GameSession: IGameSession
         var tempBoardData = new CellData[width * height];
         for (var i = 0; i < width * height ; i++)
         {
-            var newPosition = new Vector2I(i % width, i / width);
+            var newPosition = new Position(i % width, i / width);
             var cellData = new CellData(i, newPosition, CellState.hidden);
             tempBoardData[i] = cellData;
         }
