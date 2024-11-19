@@ -51,9 +51,9 @@ public static class GameSetup
         {
             for (var j = 0; j < ship2.NumberOfSections; j++)
             {
-                double distX = Math.Abs(ship1.Pos.X + i * ship1.Orientation[0] - ship2.Pos.X + j * ship2.Orientation[0]);
-                double distY = Math.Abs(ship1.Pos.Y + i * ship1.Orientation[1] - ship2.Pos.Y + j * ship2.Orientation[1]);
-                var dist = Math.Sqrt(distX * distX + distY * distY);
+                double distX = Math.Abs(ship1.Pos.X + i * ship1.Orientation[0] - (ship2.Pos.X + j * ship2.Orientation[0]));
+                double distY = Math.Abs(ship1.Pos.Y + i * ship1.Orientation[1] - (ship2.Pos.Y + j * ship2.Orientation[1]));
+                double dist = Math.Sqrt(distX * distX + distY * distY);
                 if(dist < minDistance) minDistance = dist;
             }
         }        
@@ -87,7 +87,7 @@ public static class GameSetup
             for (var j = i + 1; j < ships.Length; j++)
             {
                 var shipDistance = MinDistanceBetweenShips(ships[i], ships[j]);
-                if (shipDistance <= 2) return false;
+                if (shipDistance < 2) return false;
             }
         }
         //
