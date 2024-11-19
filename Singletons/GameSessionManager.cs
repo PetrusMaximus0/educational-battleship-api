@@ -34,17 +34,8 @@ public class GameSessionManager : IGameSessionManager
         Console.WriteLine("Returning new session");
         return session;
     }
-    public GameSession? GetSessionById(string sessionId)
-    {
-        _gameSessions.TryGetValue(sessionId, out var session);
-        return session;
-    }
-    public GameSession? GetSessionByClientId(string clientId)
-    {
-        return _gameSessions.Values.FirstOrDefault(
-                sess => sess.GameState.Players.Any(player=>player.Id == clientId)
-            );
-    }
+    public GameSession? GetSessionById(string sessionId) => _gameSessions.Values.FirstOrDefault(session => session.Id == sessionId);
+    public GameSession? GetSessionByClientId(string clientId) => _gameSessions.Values.FirstOrDefault(sess => sess.GameState.Players.Any(player=>player.Id == clientId));
     public GameSession? RemoveSession(string sessionId)
     {
         if (_gameSessions.TryRemove(sessionId, out var removedSession))
@@ -82,8 +73,5 @@ public class GameSessionManager : IGameSessionManager
         }
         Console.WriteLine($"Client with id: {clientId} left session with id: {session.Id}");
     }
-    public int GetSessionCount ()
-    {
-        return _gameSessions.Count;
-    }
+    public int GetSessionCount () => _gameSessions.Count;
 }
