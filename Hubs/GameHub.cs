@@ -47,31 +47,32 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             return;
         }
         
-        if (session.CurrentGameState.Host.Id == Context.ConnectionId)
+        //        
+        if (session.GameState.Players[0].Id == Context.ConnectionId)
         {
             // The caller is the Host. Log the host joining the session.
             Console.WriteLine($"Host joined Session Id: {session.Id}");
-        }
-        else if (session.CurrentGameState.Guest.Id == null )
+        } 
+        else if (session.GameState.Players[1].Id == null )
         {
             // The Caller is a Guest.
             Console.WriteLine($"Guest joined Session Id: {session.Id}");
             
             // Update Game state to reflect the Guest has joined the session.
-            session.CurrentGameState.Guest.Id = Context.ConnectionId;
+            session.GameState.Players[1].Id = Context.ConnectionId;
             
             // Join the guest to the same SignalR group as the host
             await Groups.AddToGroupAsync(Context.ConnectionId, session.Id);
         }
 
-        
-        if (session.CurrentGameState.Host.Id != null && session.CurrentGameState.Guest.Id != null)
+        //
+        if (session.GameState.Players.All(player=>player.Id != null))
         {
             // Both clients have joined the session. Send empty boards and trigger the game setup stage on both clients.
             await Clients.Groups(session.Id)
                 .SendAsync("BeginGameSetup", 
-                    session.CurrentGameState.RowTags, 
-                    session.CurrentGameState.ColTags, 
+                    session.GameState.RowTags, 
+                    session.GameState.ColTags, 
                     session.GetEmptyBoard(),
                     session.ShipPool                     
                     );
@@ -84,7 +85,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         if(session==null) 
             await Clients.Caller.SendAsync("Error", "Session Not Found");
         else 
-            await Clients.Group(sessionId).SendAsync("sessionClosed", session.CurrentGameState);
+            await Clients.Group(sessionId).SendAsync("sessionClosed", session.GameState);
     }
     
     public async Task ValidateFleetPlacement(string sessionId, ShipData[] shipData)
@@ -100,7 +101,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         
         // Return feedback of placement to client.
         // When result is true, the placement is valid
-        bool result = session.SetFleet(Context.ConnectionId, shipData);
+        bool result = session.PlaceFleet(Context.ConnectionId, shipData);
         await Clients.Caller.SendAsync("ShipPlacementResult", result);
         Console.WriteLine($"Validating Ship Placement result: {result}");
 

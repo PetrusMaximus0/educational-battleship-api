@@ -1,3 +1,4 @@
+using api.Enums;
 using api.Interfaces;
 using api.Models;
 using api.Utils;
@@ -10,7 +11,7 @@ public class GameSession(string hostId, string[] rowTags, string[] colTags) : IG
     public string Id { get; } = Guid.NewGuid().ToString();
 
     // Store the session game state.
-    public GameState CurrentGameState { get; private set; } = new GameState(hostId, rowTags, colTags)
+    public GameState GameState { get; private set; } = new GameState(hostId, rowTags, colTags)
     {
         RowTags = rowTags,
         ColTags = colTags,
@@ -20,56 +21,73 @@ public class GameSession(string hostId, string[] rowTags, string[] colTags) : IG
     public ShipData[]? ShipPool { get; private set; } = GameSetup.GetNewShipPool(rowTags.Length, colTags.Length );
 
     //
-    public void ReInitializeSession(string[] rowTags, string[] colTags)
+    public void ReInitializeSession(string[] inRowTags, string[] inColTags)
     {
         // Reset tags
-        CurrentGameState.ColTags = colTags;
-        CurrentGameState.RowTags = rowTags;
+        GameState.ColTags = inColTags;
+        GameState.RowTags = inRowTags;
         
         // Reset Boards and Fleet.
-        CurrentGameState.Guest.Board = GameSetup.GetEmptyBoard(rowTags.Length, colTags.Length);
-        CurrentGameState.Guest.Fleet = null;
-        CurrentGameState.Host.Board = GameSetup.GetEmptyBoard(rowTags.Length, colTags.Length);
-        CurrentGameState.Host.Fleet = null;
+        foreach (var player in GameState.Players)
+        {
+            player.Board = GameSetup.GetEmptyBoard(GameState.BoardHeight, GameState.BoardWidth);
+            player.Fleet = null;
+        }
         
         // Reset the pool
-        ShipPool = GameSetup.GetNewShipPool(rowTags.Length, colTags.Length);
+        ShipPool = GameSetup.GetNewShipPool(GameState.BoardHeight, GameState.BoardWidth);
     }
 
     /**
      * Sets the fleet data for the player with id: @playerId 
      */
-    public bool SetFleet(string playerId, ShipData[] ships)
+    public bool PlaceFleet(string playerId, ShipData[] ships)
     {
         // Verify placement
-        bool isValidPlacement = GameSetup.IsValidFleetPlacement(ships, CurrentGameState.BoardHeight, CurrentGameState.BoardWidth);
-        
-        // If the placement is valid
-        if (isValidPlacement)
+        bool isValidPlacement = GameSetup.IsValidFleetPlacement(ships, GameState.BoardHeight, GameState.BoardWidth);
+
+        if(isValidPlacement)
         {
-            // Store the fleet.
-            StoreFleet(playerId, ships);
+            // Store the Fleet object in the current player Data.
+            GameState.Players.First(player => player.Id == playerId).Fleet = ships;
             
-            // TODO: Update the correct board based on player Id
-            
+            // Set the player's own board.
+            CellData[] newBoardData = GameSetup.GetEmptyBoard(GameState.BoardHeight, GameState.BoardWidth);
+        
+            // Initialize every cell state with miss so that the cell is discovered.
+            foreach (var cell in newBoardData) cell.State = CellState.miss;
+        
+            // Use ship information to populate cells.
+            foreach (var ship in ships)
+            {
+                var index = ship.Pos.X + ship.Pos.Y * GameState.BoardWidth;
+                if (index >= GameState.BoardHeight * GameState.BoardWidth)
+                {
+                    Console.WriteLine($"Index out of bounds when setting board data: {index}");
+                    continue;
+                }
+                newBoardData[index].State = CellState.ship;
+            }
+        
+            // 
+            GameState.Players.First(player=>player.Id == playerId).Board = newBoardData;
+        }        
+        else
+        {
+            GameState.Players.First(player => player.Id == playerId).Fleet = null;
+            GameState.Players.First(player => player.Id == playerId).Board = GameSetup.GetEmptyBoard(rowTags.Length, colTags.Length);
         }
-        //
         return isValidPlacement;
     }
-    
-    private void StoreFleet(string playerId, ShipData[] shipData)
+    public CellData[] GetEmptyBoard() => GameSetup.GetEmptyBoard(GameState.BoardHeight, GameState.BoardWidth);
+    public bool IsSetupComplete()
     {
-        // Create the Fleet object.
-        FleetData fleetData = new FleetData
+        bool allSet = GameState.Players.All(player => player is
         {
-            CommanderId = playerId,
-            Ships = shipData,
-        };
-
-        // Store the Fleet object in the current player Data.
-        if (playerId == CurrentGameState.Host.Id) CurrentGameState.Host.Fleet = fleetData;
-        else if (playerId == CurrentGameState.Guest.Id) CurrentGameState.Guest.Fleet = fleetData;
+            Fleet: not null, 
+            Board: not null, 
+            OpponentBoard: not null
+        });
+        return allSet;
     }
-
-    public CellData[] GetEmptyBoard() => GameSetup.GetEmptyBoard(CurrentGameState.BoardHeight, CurrentGameState.BoardWidth);
 }
