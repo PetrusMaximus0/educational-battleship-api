@@ -1,7 +1,7 @@
 using api.Enums;
 using api.Utils;
 
-namespace api.Game;
+namespace api.Models;
 public class CellData(int index, Position position, CellState cellState)
 {
     public int Index { get; } = index;

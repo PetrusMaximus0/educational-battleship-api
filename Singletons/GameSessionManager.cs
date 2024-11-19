@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
+using api.Controllers;
 using api.Interfaces;
 
-namespace api.Game;
+namespace api.Singletons;
 
+// This class manages the lifetime of sessions. It creates, removes, stores and accesses game sessions.
 public class GameSessionManager : IGameSessionManager
 {
     // The concurrent dictionary is good for multi threading access of the dictionary.
@@ -12,7 +14,7 @@ public class GameSessionManager : IGameSessionManager
         // Attempt to reuse old session.
         foreach (var sess in _gameSessions.Values)
         {
-            if (sess.HostId != hostId) continue;
+            if (sess.CurrentGameState.Host.Id != hostId) continue;
             sess.ReInitializeSession(rowTags, colTags);
             return sess;
         }
@@ -32,7 +34,7 @@ public class GameSessionManager : IGameSessionManager
     public GameSession? GetSessionByClientId(string clientId)
     {
         return _gameSessions.Values.FirstOrDefault(
-                sess => sess.HostId == clientId || sess.GuestId == clientId
+                sess => sess.CurrentGameState.Host.Id == clientId || sess.CurrentGameState.Guest.Id == clientId
             );
     }
     public GameSession? RemoveSession(string sessionId)
@@ -47,22 +49,21 @@ public class GameSessionManager : IGameSessionManager
         Console.WriteLine($"There are currently {_gameSessions.Count} sessions ongoing.");
         return null;
     }
-
     public void LeaveSession(string clientId)
     {
         // Get reference to session.
-        var session = _gameSessions.Values.FirstOrDefault(sess=>sess.HostId == clientId || sess.GuestId == clientId);
+        var session = _gameSessions.Values.FirstOrDefault(sess=>sess.CurrentGameState.Host.Id == clientId || sess.CurrentGameState.Guest.Id == clientId);
         
         // Return null if a session containing this client ID doesn't exist.
         if (session == null) return;
         
         // Set this client ID null in the session, to signal the client is no longer connected to the session.
-        if(session.HostId == clientId) session.HostId = null;
-        else if(session.GuestId == clientId) session.GuestId = null;
+        if(session.CurrentGameState.Host.Id == clientId) session.CurrentGameState.Host.Id = null;
+        else if(session.CurrentGameState.Guest.Id == clientId) session.CurrentGameState.Guest.Id = null;
 
         // If both the Host ID and Guest ID are null, there is no client connected to this game session.
         // Clear the session if no client is connected. 
-        if(session.HostId == null && session.GuestId == null)
+        if(session.CurrentGameState.Host.Id == null && session.CurrentGameState.Guest.Id == null)
         {
             _gameSessions.TryRemove(session.Id, out _);
             Console.WriteLine($"Session with id: {session.Id} removed.");
