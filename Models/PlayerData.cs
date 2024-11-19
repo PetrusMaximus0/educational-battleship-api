@@ -3,6 +3,6 @@
 public class PlayerData
 {
     public string? Id { get; set; }
-    public FleetData? Fleet { get; set; }
+    public ShipData[]? Fleet { get; set; }
     public CellData[]? Board { get; set; }
 }
