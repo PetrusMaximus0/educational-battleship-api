@@ -35,9 +35,10 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         Console.WriteLine($"There are currently {_gameSessionManager.GetSessionCount()} sessions ongoing.");
     }
 
+    // Handle a client request to join an existing session by session Id.
     public async Task JoinExistingSession(string sessionId)
     {
-        // Check if the session exists
+        // Try getting the session by id.
         var session = _gameSessionManager.GetSessionById(sessionId);
         if (session == null )
         {
@@ -45,22 +46,28 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             await Clients.Caller.SendAsync("Error", "Session Not Found");
             return;
         }
-        //
+        
         if (session.CurrentGameState.Host.Id == Context.ConnectionId)
         {
+            // The caller is the Host. Log the host joining the session.
             Console.WriteLine($"Host joined Session Id: {session.Id}");
         }
         else if (session.CurrentGameState.Guest.Id == null )
         {
+            // The Caller is a Guest.
             Console.WriteLine($"Guest joined Session Id: {session.Id}");
+            
+            // Update Game state to reflect the Guest has joined the session.
             session.CurrentGameState.Guest.Id = Context.ConnectionId;
+            
             // Join the guest to the same SignalR group as the host
             await Groups.AddToGroupAsync(Context.ConnectionId, session.Id);
         }
 
-        // Sends empty boards and trigger the game setup stage on both clients.
+        
         if (session.CurrentGameState.Host.Id != null && session.CurrentGameState.Guest.Id != null)
         {
+            // Both clients have joined the session. Send empty boards and trigger the game setup stage on both clients.
             await Clients.Groups(session.Id)
                 .SendAsync("BeginGameSetup", 
                     session.CurrentGameState.RowTags, 
