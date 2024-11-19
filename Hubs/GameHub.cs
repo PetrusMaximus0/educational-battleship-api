@@ -105,10 +105,10 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         await Clients.Caller.SendAsync("ShipPlacementResult", result);
         Console.WriteLine($"Validating Ship Placement result: {result}");
 
-        if (result) 
+        if (result && session.IsSetupComplete())
         {
-            // Placement is valid, check if all players have valid placement.
-            // Todo: Check and Handle all players are validated. 
+            //
+            await Clients.Groups(sessionId).SendAsync("StartGame");
         }
 
     }
