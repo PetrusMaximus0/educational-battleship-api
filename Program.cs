@@ -1,7 +1,7 @@
 
-using api.Game;
 using api.Hubs;
 using api.Interfaces;
+using api.Singletons;
 
 var builder = WebApplication.CreateBuilder(args);
 
