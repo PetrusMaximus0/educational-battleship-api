@@ -112,6 +112,35 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         }
 
     }
+
+    public async Task BeginGame(string sessionId)
+    {
+        //
+        var session = _gameSessionManager.GetSessionById(sessionId);
+        if(session == null)
+        {
+            await Clients.Caller.SendAsync("Error", "Session Not Found");
+            return;
+        }
+        
+        // 
+        if (session.GameState.Players.All(player=>player.Id != Context.ConnectionId))
+        {
+            await Clients.Caller.SendAsync("Error", "Session Not Found");
+            return;
+        }
+        
+        // Null checks all the required fields for the next step.
+        if (!session.IsSetupComplete())
+        {
+            await Clients.Groups(sessionId).SendAsync("Error", "Game Setup Not Complete!");
+            return;
+        }
+        
+        // Send The Respective ships, board and opponent board.
+        var player = session.GameState.Players.FirstOrDefault(player => player.Id == Context.ConnectionId)!;
+        await Clients.Caller.SendAsync("BeginGame", player!.Board, player.OpponentBoard, player.Fleet);
+    }
     
     public void LeaveSession() => _gameSessionManager.LeaveSession(Context.ConnectionId);
     
