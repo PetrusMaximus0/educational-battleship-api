@@ -18,6 +18,11 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
     {
         // Obtain a game session. Could be new or from a pool.
         var session = _gameSessionManager.CreateSession(Context.ConnectionId, rowTags, colTags);
+        if(session == null)
+        {
+            await Clients.Caller.SendAsync("Error", "Error creating session, check if the number of column and row tags is larger than 0.");
+            return;
+        }
         
         // Join the host to a SignalR Group with the session ID as the group name.
         await Groups.AddToGroupAsync(Context.ConnectionId, session.Id);
@@ -74,7 +79,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         else 
             await Clients.Group(sessionId).SendAsync("sessionClosed", session.CurrentGameState);
     }
-
+    
     public async Task ValidateFleetPlacement(string sessionId, ShipData[] shipData)
     {
         var session = _gameSessionManager.GetSessionById(sessionId);

@@ -9,9 +9,17 @@ public class GameSessionManager : IGameSessionManager
 {
     // The concurrent dictionary is good for multi threading access of the dictionary.
     private readonly ConcurrentDictionary<string, GameSession> _gameSessions = new();
-    public GameSession CreateSession(string hostId, string[] rowTags, string[] colTags)
+    
+    /*
+     * Creates a new session using hostId and returns it.
+     * If a session with a matching hostId exists, then attempt to return this it.
+     */
+    public GameSession? CreateSession(string hostId, string[] rowTags, string[] colTags)
     {
-        // Attempt to reuse old session.
+        // Check if the inputs are valid.
+        if (rowTags.Length <= 0 || colTags.Length <= 0) return null; 
+        
+        // Look for sessions with a matching host id.
         foreach (var sess in _gameSessions.Values)
         {
             if (sess.CurrentGameState.Host.Id != hostId) continue;
