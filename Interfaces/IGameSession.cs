@@ -1,12 +1,12 @@
-using api.Game;
+using api.Models;
 
 namespace api.Interfaces;
 
 public interface IGameSession
 {
     string Id { get; }
-    string? HostId {get; set;}
-    string? GuestId {get; set;}
     GameState CurrentGameState {get; }
-    List<ShipData> Fleet {get; }
+    ShipData[]? ShipPool {get; }
+    bool SetFleet(string playerId, ShipData[] ships);
+    void ReInitializeSession(string[] rowTags, string[] colTags);
 }
