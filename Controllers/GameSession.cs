@@ -53,24 +53,29 @@ public class GameSession(string hostId, string[] rowTags, string[] colTags) : IG
             
             // Set the player's own board.
             CellData[] newBoardData = GameSetup.GetEmptyBoard(GameState.BoardHeight, GameState.BoardWidth);
-        
+
             // Initialize every cell state with miss so that the cell is discovered.
             foreach (var cell in newBoardData) cell.State = CellState.miss;
         
             // Use ship information to populate cells.
             foreach (var ship in ships)
             {
-                var index = ship.Pos.X + ship.Pos.Y * GameState.BoardWidth;
-                if (index >= GameState.BoardHeight * GameState.BoardWidth)
+                for (var i = 0; i < ship.NumberOfSections; i++)
                 {
-                    Console.WriteLine($"Index out of bounds when setting board data: {index}");
-                    continue;
+                    var sectionPos = new Position(ship.Pos.X + i * ship.Orientation[0], ship.Pos.Y + i * ship.Orientation[1]);
+                    var index = sectionPos.X + sectionPos.Y * GameState.BoardWidth;
+                    if (index >= GameState.BoardHeight * GameState.BoardWidth || index < 0)
+                    {
+                        Console.WriteLine($"Index out of bounds when setting board data: {index}");
+                        continue;
+                    }
+                    newBoardData[index].State = CellState.ship;
                 }
-                newBoardData[index].State = CellState.ship;
             }
         
             // 
             GameState.Players.First(player=>player.Id == playerId).Board = newBoardData;
+            GameState.Players.First(player=>player.Id == playerId).OpponentBoard = GameSetup.GetEmptyBoard(GameState.BoardHeight, GameState.BoardWidth);
         }        
         else
         {
@@ -82,12 +87,10 @@ public class GameSession(string hostId, string[] rowTags, string[] colTags) : IG
     public CellData[] GetEmptyBoard() => GameSetup.GetEmptyBoard(GameState.BoardHeight, GameState.BoardWidth);
     public bool IsSetupComplete()
     {
-        bool allSet = GameState.Players.All(player => player is
-        {
-            Fleet: not null, 
-            Board: not null, 
-            OpponentBoard: not null
-        });
-        return allSet;
+        bool fleetSet = GameState.Players.All(player => player.Fleet != null);
+        bool boardSet = GameState.Players.All(player => player.Board != null);
+        bool opBoardSet = GameState.Players.All(player => player.OpponentBoard != null);
+        Console.WriteLine($"fleet: {fleetSet},  board: {boardSet},  opBoard: {opBoardSet}");
+        return fleetSet && boardSet && opBoardSet;
     }
 }

@@ -22,9 +22,8 @@ builder.Services.AddCors(opt =>
     });
 });
 
-builder.Services.AddSingleton<IGameSessionManager, GameSessionManager>();
-
 // Service for managing game sessions.
+builder.Services.AddSingleton<IGameSessionManager, GameSessionManager>();
 
 var app = builder.Build();
 
