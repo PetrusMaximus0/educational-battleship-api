@@ -108,6 +108,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         if (result && session.IsSetupComplete())
         {
             //
+            Console.WriteLine($"Ship Placement Complete");
             await Clients.Groups(sessionId).SendAsync("StartGame");
         }
 
@@ -115,6 +116,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
 
     public async Task BeginGame(string sessionId)
     {
+        Console.WriteLine($"Beginning Game Session: {sessionId}");
         //
         var session = _gameSessionManager.GetSessionById(sessionId);
         if(session == null)
@@ -139,7 +141,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         
         // Send The Respective ships, board and opponent board.
         var player = session.GameState.Players.FirstOrDefault(player => player.Id == Context.ConnectionId)!;
-        await Clients.Caller.SendAsync("BeginGame", player!.Board, player.OpponentBoard, player.Fleet);
+        await Clients.Caller.SendAsync("UpdateGameState", player.Board, player.OpponentBoard, player.Fleet, session.GameState.RowTags, session.GameState.ColTags);
     }
     
     public void LeaveSession() => _gameSessionManager.LeaveSession(Context.ConnectionId);
