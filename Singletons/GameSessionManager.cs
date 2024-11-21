@@ -22,7 +22,7 @@ public class GameSessionManager : IGameSessionManager
         // Look for sessions with a matching host id.
         foreach (var sess in _gameSessions.Values)
         {
-            if (sess.GameState.Players.All(player => player.Id != hostId)) continue;
+            if (sess.GameData.Players.All(player => player.Id != hostId)) continue;
             sess.ReInitializeSession(rowTags, colTags);
             return sess;
         }
@@ -35,7 +35,7 @@ public class GameSessionManager : IGameSessionManager
         return session;
     }
     public GameSession? GetSessionById(string sessionId) => _gameSessions.Values.FirstOrDefault(session => session.Id == sessionId);
-    public GameSession? GetSessionByClientId(string clientId) => _gameSessions.Values.FirstOrDefault(sess => sess.GameState.Players.Any(player=>player.Id == clientId));
+    public GameSession? GetSessionByClientId(string clientId) => _gameSessions.Values.FirstOrDefault(sess => sess.GameData.Players.Any(player=>player.Id == clientId));
     public GameSession? RemoveSession(string sessionId)
     {
         if (_gameSessions.TryRemove(sessionId, out var removedSession))
@@ -51,13 +51,13 @@ public class GameSessionManager : IGameSessionManager
     public void LeaveSession(string clientId)
     {
         // Get reference to session.
-        var session = _gameSessions.Values.FirstOrDefault(sess=>sess.GameState.Players.Any(player=>player.Id == clientId));
+        var session = _gameSessions.Values.FirstOrDefault(sess=>sess.GameData.Players.Any(player=>player.Id == clientId));
         
         // Return null if a session containing this client ID doesn't exist.
         if (session == null) return;
         
         // Set this client ID null in the session, to signal the client is no longer connected to the session.
-        foreach (var player in session.GameState.Players)
+        foreach (var player in session.GameData.Players)
         {
             if (player.Id != clientId) continue;
             player.Id = null;
@@ -66,7 +66,7 @@ public class GameSessionManager : IGameSessionManager
 
         // If both the Host ID and Guest ID are null, there is no client connected to this game session.
         // Clear the session if no client is connected.
-        if (session.GameState.Players.All(player => player.Id == null))
+        if (session.GameData.Players.All(player => player.Id == null))
         {
             _gameSessions.TryRemove(session.Id, out _);
             Console.WriteLine($"Session with id: {session.Id} removed.");

@@ -1,6 +1,6 @@
 namespace api.Models;
 
-public class GameState(string hostId, string[] rowTags, string[] colTags)
+public class GameData(string hostId, string[] rowTags, string[] colTags)
 {
     public int BoardWidth => ColTags.Length;
     public int BoardHeight => RowTags.Length;

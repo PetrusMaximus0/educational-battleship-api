@@ -5,7 +5,7 @@ namespace api.Interfaces;
 public interface IGameSession
 {
     string Id { get; }
-    GameState GameState {get; }
+    GameData GameData {get; }
     ShipData[]? ShipPool {get; }
     bool PlaceFleet(string playerId, ShipData[] ships);
     void ReInitializeSession(string[] rowTags, string[] colTags);
