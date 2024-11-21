@@ -1,4 +1,6 @@
-﻿namespace api.Models;
+﻿using api.Enums;
+
+namespace api.Models;
 
 public class PlayerData
 {
@@ -6,4 +8,6 @@ public class PlayerData
     public ShipData[]? Fleet { get; set; }
     public CellData[]? Board { get; set; }
     public CellData[]? OpponentBoard { get; set; }
+    
+    public EClientState ClientState { get; set; } = EClientState.Disconnected;
 }
