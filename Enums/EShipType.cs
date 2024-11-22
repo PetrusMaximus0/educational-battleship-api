@@ -3,8 +3,11 @@
 namespace api.Enums;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ShipSectionStatus
+public enum EShipType
 {
-    ok,
-    hit,
+    destroyer,
+    submarine,
+    carrier,
+    frigate,
+    battleship,
 }

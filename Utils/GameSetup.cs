@@ -12,7 +12,7 @@ public static class GameSetup
         for (var i = 0; i < width * height ; i++)
         {
             var newPosition = new Position(i % width, i / width);
-            var cellData = new CellData(i, newPosition, CellState.hidden);
+            var cellData = new CellData(i, newPosition, ECellState.hidden);
             newBoard[i] = cellData;
         }
         return newBoard;

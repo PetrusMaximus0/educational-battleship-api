@@ -12,36 +12,36 @@ public struct Templates()
             NumberOfSections = 2,
             Orientation = [1, 0],
             Pos = new Position(0, 0),
-            Type = ShipType.destroyer,
-            SectionStatus = [ShipSectionStatus.ok, ShipSectionStatus.ok]
+            Type = EShipType.destroyer,
+            SectionStatus = [EShipSectionStatus.ok, EShipSectionStatus.ok]
         },new ShipData()
         {
             NumberOfSections = 3,
             Orientation = [1, 0],
             Pos = new Position(0, 0),
-            Type = ShipType.submarine,
-            SectionStatus = [ShipSectionStatus.ok, ShipSectionStatus.ok, ShipSectionStatus.ok]
+            Type = EShipType.submarine,
+            SectionStatus = [EShipSectionStatus.ok, EShipSectionStatus.ok, EShipSectionStatus.ok]
         },new ShipData()
         {
             NumberOfSections = 3,
             Orientation = [1, 0],
             Pos = new Position(0, 0),
-            Type = ShipType.frigate,
-            SectionStatus = [ShipSectionStatus.ok, ShipSectionStatus.ok, ShipSectionStatus.ok]
+            Type = EShipType.frigate,
+            SectionStatus = [EShipSectionStatus.ok, EShipSectionStatus.ok, EShipSectionStatus.ok]
         },new ShipData()
         {
             NumberOfSections = 4,
             Orientation = [1, 0],
             Pos = new Position(0, 0),
-            Type = ShipType.battleship,
-            SectionStatus = [ShipSectionStatus.ok, ShipSectionStatus.ok, ShipSectionStatus.ok, ShipSectionStatus.ok]
+            Type = EShipType.battleship,
+            SectionStatus = [EShipSectionStatus.ok, EShipSectionStatus.ok, EShipSectionStatus.ok, EShipSectionStatus.ok]
         },new ShipData()
         {
             NumberOfSections = 5,
             Orientation = [1, 0],
             Pos = new Position(0, 0),
-            Type = ShipType.carrier,
-            SectionStatus = [ShipSectionStatus.ok, ShipSectionStatus.ok, ShipSectionStatus.ok, ShipSectionStatus.ok, ShipSectionStatus.ok]
+            Type = EShipType.carrier,
+            SectionStatus = [EShipSectionStatus.ok, EShipSectionStatus.ok, EShipSectionStatus.ok, EShipSectionStatus.ok, EShipSectionStatus.ok]
         },
     ];
 }

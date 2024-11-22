@@ -58,7 +58,7 @@ public class GameSession(string hostId, string[] rowTags, string[] colTags) : IG
             CellData[] newBoardData = GameSetup.GetEmptyBoard(GameData.BoardHeight, GameData.BoardWidth);
 
             // Initialize every cell state with miss so that the cell is discovered.
-            foreach (var cell in newBoardData) cell.State = CellState.miss;
+            foreach (var cell in newBoardData) cell.State = ECellState.miss;
         
             // Use ship information to populate cells.
             foreach (var ship in ships)
@@ -72,7 +72,7 @@ public class GameSession(string hostId, string[] rowTags, string[] colTags) : IG
                         Console.WriteLine($"Index out of bounds when setting board data: {index}");
                         continue;
                     }
-                    newBoardData[index].State = CellState.ship;
+                    newBoardData[index].State = ECellState.ship;
                 }
             }
         

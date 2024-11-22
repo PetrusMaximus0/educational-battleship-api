@@ -8,6 +8,5 @@ public class PlayerData
     public ShipData[]? Fleet { get; set; }
     public CellData[]? Board { get; set; }
     public CellData[]? OpponentBoard { get; set; }
-    
-    public EClientState ClientState { get; set; } = EClientState.Disconnected;
+    public EClientState ClientState { get; set; } = EClientState.FleetSetup;
 }
