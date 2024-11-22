@@ -208,4 +208,48 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         
         await base.OnDisconnectedAsync(exception);
     }
+    public async Task FireAtCell(string sessionId, int index)
+    {
+        var session = _gameSessionManager.GetSessionById(sessionId);
+        // Early return if session couldn't be found.
+        if (session == null)
+        {
+            await Clients.Caller.SendAsync("Error", "Session Not Found When trying to fire at cell");
+            return;
+        }
+
+        // Is it this guy's turn ?
+        var result = session.FireAtCell(Context.ConnectionId, index);
+        if (!result)
+        {
+            // Not this client's turn. Refuse the command.
+            await Clients.Caller.SendAsync("Error", "Not your turn. You shouldn't be able to fire this turn.");
+            return;
+        }
+        
+        // Get player data.
+        var player = session.GameData.Players.FirstOrDefault(p => p.Id == Context.ConnectionId);
+        var outOfTurnPlayer = session.GameData.Players.FirstOrDefault(p => p.Id != Context.ConnectionId);
+        if (player?.Id == null || outOfTurnPlayer?.Id == null) 
+        { 
+            await Clients.Caller.SendAsync("Error", "Player not found");
+            return;
+        }
+        
+        // Update Players Data
+        await Clients.Client(outOfTurnPlayer.Id).SendAsync("ClientStateUpdate", EClientState.OnTurn);
+        await Clients.Client(outOfTurnPlayer.Id).SendAsync("UpdateBoards", outOfTurnPlayer.Board, outOfTurnPlayer.OpponentBoard);
+
+        // Return updated states to active player
+        await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.WaitingForTurn);
+        await Clients.Caller.SendAsync("UpdateBoards", player.Board, player.OpponentBoard );
+        
+        // Check for a winner
+        var winnerId = session.IsGameOver();
+        if (winnerId!=null)
+        {
+            // TODO: There is a winner. Advance to game over stage.
+            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", EGameState.GameOver);            
+        }
+    }
 }
