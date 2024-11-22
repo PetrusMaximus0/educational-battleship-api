@@ -24,7 +24,7 @@ public class GameSession(string[] rowTags, string[] colTags) : IGameSession
     public ShipData[]? ShipPool { get; private set; } = GameSetup.GetNewShipPool(rowTags.Length, colTags.Length );
 
     //
-    public void ReInitializeSession(string[] inRowTags, string[] inColTags)
+    public void ResetGame(string[] inRowTags, string[] inColTags)
     {
         // Reset tags
         GameData.ColTags = inColTags;
@@ -41,6 +41,40 @@ public class GameSession(string[] rowTags, string[] colTags) : IGameSession
         ShipPool = GameSetup.GetNewShipPool(GameData.BoardHeight, GameData.BoardWidth);
     }
 
+    public string? IsGameOver()
+    {
+        var loser = GameData.Players.FirstOrDefault(
+            p => p.Board!.All(cell=>cell.State!=ECellState.ship));
+        if (loser == null) return null;
+        
+        // Return the winner's id or null if for some reason we can't find a valid winner.
+        var winner = GameData.Players.FirstOrDefault(p => p.Id != loser.Id && p.Id != null);
+        return winner?.Id;
+    }
+
+    public bool FireAtCell(string clientId, int index)
+    {
+        // Get our player's data.
+        var player = GameData.Players.FirstOrDefault((player) => player.Id == clientId);
+        // Get the client's opponent.
+        var opponent = GameData.Players.FirstOrDefault((p)=>p.Id != clientId && p.Id != null);
+        if (player==null || opponent == null) return false;
+        
+        // Compute the result.
+        var result = opponent.Board![index].State == ECellState.ship;
+        
+        if (result) // The shot is a HIT.
+        {
+            player.OpponentBoard![index].State = ECellState.hit;
+            opponent.Board![index].State = ECellState.hit;
+        }
+        else // The shot is a MISS.
+        {
+            player.OpponentBoard![index].State = ECellState.miss;
+        }
+
+        return true;
+    }
     /**
      * Sets the fleet data for the player with id: @playerId 
      */
@@ -97,7 +131,6 @@ public class GameSession(string[] rowTags, string[] colTags) : IGameSession
         bool fleetSet = GameData.Players.All(player => player.Fleet != null);
         bool boardSet = GameData.Players.All(player => player.Board != null);
         bool opBoardSet = GameData.Players.All(player => player.OpponentBoard != null);
-        Console.WriteLine($"fleet: {fleetSet},  board: {boardSet},  opBoard: {opBoardSet}");
         return fleetSet && boardSet && opBoardSet;
     }
 }

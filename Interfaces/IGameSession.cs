@@ -8,5 +8,7 @@ public interface IGameSession
     GameData GameData {get; }
     ShipData[]? ShipPool {get; }
     bool PlaceFleet(string playerId, ShipData[] ships);
-    void ReInitializeSession(string[] rowTags, string[] colTags);
+    void ResetGame(string[] rowTags, string[] colTags);
+    string? IsGameOver();
+    bool FireAtCell(string clientId, int index);
 }
