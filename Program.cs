@@ -15,7 +15,7 @@ builder.Services.AddCors(opt =>
     opt.AddPolicy("ReactApp", policyBuilder =>
     {
         policyBuilder
-            .WithOrigins("http://localhost:5173")
+            .WithOrigins("http://localhost:5173", "http://192.168.0.220:5173")
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
@@ -28,8 +28,8 @@ builder.Services.AddSingleton<IGameSessionManager, GameSessionManager>();
 var app = builder.Build();
 
 app.UseHttpsRedirection();
-app.MapHub<GameHub>("/battlespeak");
 app.UseCors("ReactApp");
+app.MapHub<GameHub>("/battlespeak").RequireCors("ReactApp");
 
 //
 app.Run();
