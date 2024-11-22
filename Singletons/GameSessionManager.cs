@@ -14,21 +14,13 @@ public class GameSessionManager : IGameSessionManager
      * Creates a new session using hostId and returns it.
      * If a session with a matching hostId exists, then attempt to return this it.
      */
-    public GameSession? CreateSession(string hostId, string[] rowTags, string[] colTags)
+    public GameSession? CreateSession(string[] rowTags, string[] colTags)
     {
         // Check if the inputs are valid.
         if (rowTags.Length <= 0 || colTags.Length <= 0) return null; 
         
-        // Look for sessions with a matching host id.
-        foreach (var sess in _gameSessions.Values)
-        {
-            if (sess.GameData.Players.All(player => player.Id != hostId)) continue;
-            sess.ReInitializeSession(rowTags, colTags);
-            return sess;
-        }
-        
         // Create a new session.
-        var session = new GameSession(hostId, rowTags, colTags);
+        var session = new GameSession(rowTags, colTags);
         _gameSessions[session.Id] = session;
         
         Console.WriteLine("Returning new session");

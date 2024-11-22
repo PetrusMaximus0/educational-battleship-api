@@ -5,7 +5,7 @@ namespace api.Interfaces;
 public interface IGameSessionManager
 {
     // Obtain a game session. Could be new or from a pool.
-    GameSession? CreateSession(string hostId, string[] rowTags, string[] colTags);
+    GameSession? CreateSession(string[] rowTags, string[] colTags);
     
     // Return an existing Game Session by ID.
     GameSession? GetSessionById(string sessionId);

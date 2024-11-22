@@ -5,13 +5,13 @@ using api.Utils;
 
 namespace api.Controllers;
 
-public class GameSession(string hostId, string[] rowTags, string[] colTags) : IGameSession
+public class GameSession(string[] rowTags, string[] colTags) : IGameSession
 {
     // Game session ID.
     public string Id { get; } = Guid.NewGuid().ToString();
 
     // Store the session game state.
-    public GameData GameData { get; private set; } = new GameData(hostId, rowTags, colTags)
+    public GameData GameData { get; private set; } = new GameData(rowTags, colTags)
     {
         RowTags = rowTags,
         ColTags = colTags,

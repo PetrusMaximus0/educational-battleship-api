@@ -17,7 +17,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
     public async Task RequestNewSession(string[] rowTags, string[] colTags)
     {
         // Obtain a game session. Could be new or from a pool.
-        var session = _gameSessionManager.CreateSession(Context.ConnectionId, rowTags, colTags);
+        var session = _gameSessionManager.CreateSession(rowTags, colTags);
         if(session == null)
         {
             await Clients.Caller.SendAsync("Error", "Error creating session, check if the number of column and row tags is larger than 0.");
