@@ -143,9 +143,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             Console.WriteLine($"Ship Placement Complete");
             await Clients.Groups(sessionId).SendAsync("StartGame");
         }
-
     }
-
     public async Task BeginGame(string sessionId)
     {
         Console.WriteLine($"Beginning Game Session: {sessionId}");
@@ -158,7 +156,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         }
         
         // 
-        if (session.GameState.Players.All(player=>player.Id != Context.ConnectionId))
+        if (session.GameData.Players.All(player=>player.Id != Context.ConnectionId))
         {
             await Clients.Caller.SendAsync("Error", "Session Not Found");
             return;
@@ -172,41 +170,9 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         }
         
         // Send The Respective ships, board and opponent board.
-        var player = session.GameState.Players.FirstOrDefault(player => player.Id == Context.ConnectionId)!;
-        await Clients.Caller.SendAsync("UpdateGameState", player.Board, player.OpponentBoard, player.Fleet, session.GameState.RowTags, session.GameState.ColTags);
-    }
-    
-    public void LeaveSession() => _gameSessionManager.LeaveSession(Context.ConnectionId);
-    
-    public override async Task OnConnectedAsync()
-    {
-        // Add the new connection to the list of connected users.
-        ConnectedUsers.Add(Context.ConnectionId);
-        
-        // Log this connection
-        Console.WriteLine($"User has connected to server: {Context.ConnectionId}");
-        
-        // Log number of users connected.
-        Console.WriteLine($"We now have {ConnectedUsers.Count} users connected to the server");
-        
-        await base.OnConnectedAsync();
-    }
-
-    public override async Task OnDisconnectedAsync(Exception? exception)
-    {
-        // Remove the connection ID from the list of connected users.
-        ConnectedUsers.Remove(Context.ConnectionId);
-        
-        // Log this connection
-        Console.WriteLine($"User has disconnected from server: {Context.ConnectionId}");
-        
-        // Log number of users connected.
-        Console.WriteLine($"We now have {ConnectedUsers.Count} users connected to the server");
-
-        // Client leaves the session.
-        _gameSessionManager.LeaveSession(Context.ConnectionId);        
-        
-        await base.OnDisconnectedAsync(exception);
+        var player = session.GameData.Players.FirstOrDefault(player => player.Id == Context.ConnectionId)!;
+        await Clients.Caller.SendAsync("GameBoardsInit", session.GameData.RowTags, session.GameData.ColTags, player.Board, player.OpponentBoard);
+        Console.WriteLine($"Sending initial game data to player: {player.Id}");
     }
     public async Task FireAtCell(string sessionId, int index)
     {
