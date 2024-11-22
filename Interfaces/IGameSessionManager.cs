@@ -13,11 +13,11 @@ public interface IGameSessionManager
     // Return an existing Session by HostId or GuestId
     GameSession? GetSessionByClientId(string clientId);
     
-    // Delete an existing Game Session by ID.
-    GameSession? RemoveSession(string sessionId);
-    
     // Leave a session.
     void LeaveSession(string clientId);
+    
+    // Join a session
+    GameSession? JoinSession(string sessionId, string clientId);
     
     // Return the number of active sessions
     int GetSessionCount();
