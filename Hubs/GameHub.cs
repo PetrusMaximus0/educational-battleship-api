@@ -113,13 +113,31 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
     /* Handle a request for initializing the Fleet setup. */
     public async Task FleetSetup(string sessionId)
     {
-        var session = _gameSessionManager.RemoveSession(sessionId);
-        if(session==null) 
+        // Try getting the session by id.
+        var session = _gameSessionManager.GetSessionById(sessionId);
+        if (session == null )
+        {
+            // Send an error to the caller if the session doesn't exist.
             await Clients.Caller.SendAsync("Error", "Session Not Found");
-        else 
-            await Clients.Group(sessionId).SendAsync("sessionClosed", session.GameState);
+            return;
+        }
+        
+        //
+        if (session.GameState != EGameState.FleetSetup)
+        {
+            Console.WriteLine($"Game state is not fleet setup. State: {session.GameState}");
+            await Clients.Caller.SendAsync("Error", "Game state is not fleet setup.");
+            return;
+        }
+        Console.WriteLine($"Fleet setup called for session {sessionId}");
+        await Clients.Client(Context.ConnectionId)
+            .SendAsync("BeginFleetSetup", 
+                session.GameData.RowTags, 
+                session.GameData.ColTags, 
+                session.GetEmptyBoard(),
+                session.ShipPool                     
+            );
     }
-    
     public async Task ValidateFleetPlacement(string sessionId, ShipData[] shipData)
     {
         var session = _gameSessionManager.GetSessionById(sessionId);
