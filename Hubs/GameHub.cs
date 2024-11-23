@@ -152,14 +152,28 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         // Return feedback of placement to client.
         // When result is true, the placement is valid
         bool result = session.PlaceFleet(Context.ConnectionId, shipData);
-        await Clients.Caller.SendAsync("ShipPlacementResult", result);
-        Console.WriteLine($"Validating Ship Placement result: {result}");
+        Console.WriteLine($"Fleet Setup Validation result: {result}");
 
+        if (!result)
+        {
+            await Clients.Caller.SendAsync("Error", "Fleet Setup Validation failed");
+            return;
+        }
+        
+        await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.FleetReady);
         if (result && session.IsSetupComplete())
         {
-            //
             Console.WriteLine($"Ship Placement Complete");
-            await Clients.Groups(sessionId).SendAsync("StartGame");
+            // Set ongoing game state for all players.
+            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", EGameState.GameOnGoing);
+            
+            // First player is the one who finished placing ships first.
+            await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.OnTurn);
+            
+            // Set the other player as waiting for their turn.
+            var otherPlayer = session.GameData.Players.FirstOrDefault((p)=>p.Id != Context.ConnectionId);
+            if (otherPlayer?.Id == null) await Clients.Groups(sessionId).SendAsync("Error", "Player not found");
+            await Clients.Client(otherPlayer!.Id!).SendAsync("ClientStateUpdate", EClientState.WaitingForTurn);
         }
     }
     public async Task BeginGame(string sessionId)
