@@ -5,6 +5,16 @@ using api.Singletons;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load configuration from settings.
+
+var clientUrl = builder.Configuration.GetSection("ClientUrl").Get<string[]>();
+
+if (clientUrl is null || clientUrl.Length == 0)
+{
+    Console.WriteLine($"\n \n ClientOrigin was not configured. \n \n");
+    return;
+}
+
 // Add services
 builder.Services.AddEndpointsApiExplorer();
 
@@ -15,7 +25,7 @@ builder.Services.AddCors(opt =>
     opt.AddPolicy("ReactApp", policyBuilder =>
     {
         policyBuilder
-            .WithOrigins("http://localhost:5173", "http://192.168.0.220:5173")
+            .WithOrigins(clientUrl)
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
