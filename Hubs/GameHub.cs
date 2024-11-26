@@ -49,7 +49,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
     // Handle a client requesting a new session. Return the session ID and prepare empty boards.
     public async Task RequestNewSession(string[] rowTags, string[] colTags)
     {
-        // Obtain a game session. Could be new or from a pool.
+        // Obtain a new game session.
         var session = _gameSessionManager.CreateSession(rowTags, colTags);
         if(session == null)
         {
@@ -80,7 +80,11 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         }
         // Send game and player states to the client
         var player = session.GameData.Players.FirstOrDefault((p)=>p.Id == Context.ConnectionId);
-        if (player == null) return; // This would be a very strange error.
+        if (player == null) 
+        {
+            Console.WriteLine($"Couldn't join Session: {sessionId}. Player not found.");
+            return; // This would be a very strange error.
+        }
         await Clients.Caller.SendAsync("ClientStateUpdate", player.ClientState);
         await Clients.Caller.SendAsync("GameStateUpdate", session.GameState);
         
@@ -90,7 +94,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         // Check if session is complete.
         if (session.GameData.Players.All(p => p.Id != null))
         {
-            if(session.GameState==EGameState.GameOver)
+            if(session.GameState==EGameState.Lobby)
             {
                 // Set the states.
                 foreach (var client in session.GameData.Players) client.ClientState = EClientState.FleetSetup;
