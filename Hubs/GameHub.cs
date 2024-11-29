@@ -85,8 +85,8 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             Console.WriteLine($"Couldn't join Session: {sessionId}. Player not found.");
             return; // This would be a very strange error.
         }
-        await Clients.Caller.SendAsync("ClientStateUpdate", player.ClientState);
-        await Clients.Caller.SendAsync("GameStateUpdate", session.GameState);
+        await Clients.Caller.SendAsync("ClientStateUpdate", player.ClientState, "Joined Session!");
+        await Clients.Caller.SendAsync("GameStateUpdate", session.GameState, "Joined Session!");
         
         // Join the client to the session's group
         await Groups.AddToGroupAsync(Context.ConnectionId, session.Id);
@@ -103,10 +103,10 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             }
                                 
             // Send the state.
-            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", session.GameState);
+            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", session.GameState, "Starting Game...");
             foreach (var client in session.GameData.Players)
             {
-                await Clients.Client(client.Id!).SendAsync("ClientStateUpdate", client.ClientState);
+                await Clients.Client(client.Id!).SendAsync("ClientStateUpdate", client.ClientState, "Starting Game...");
             }
         }
     }
@@ -164,12 +164,12 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             return;
         }
         
-        await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.FleetReady);
+        await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.FleetReady, "Fleet Setup Complete!");
         if (result && session.IsSetupComplete())
         {
             Console.WriteLine($"Ship Placement Complete");
             // Set ongoing game state for all players.
-            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", EGameState.GameOnGoing);
+            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", EGameState.GameOnGoing, "Game Ongoing");
             
             // First player is the one who finished placing ships first.
             await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.OnTurn);
