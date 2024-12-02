@@ -6,4 +6,6 @@ public enum EClientState
     FleetReady,
     WaitingForTurn,
     OnTurn,
+    ApprovingShot,
+    PendingShotApproval,
 }
