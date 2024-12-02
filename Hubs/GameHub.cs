@@ -220,11 +220,11 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             return;
         }
 
-        // Is it this guy's turn ?
+        // Is it a valid result?
         var result = session.FireAtCell(Context.ConnectionId, index);
         if (!result)
         {
-            // Not this client's turn. Refuse the command.
+            // Not a valid move. Refuse the command.
             await Clients.Caller.SendAsync("Error", "Not your turn. You shouldn't be able to fire this turn.");
             return;
         }
@@ -232,6 +232,161 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         // Get player data.
         var player = session.GameData.Players.FirstOrDefault(p => p.Id == Context.ConnectionId);
         var outOfTurnPlayer = session.GameData.Players.FirstOrDefault(p => p.Id != Context.ConnectionId);
+        if (player?.Id == null || outOfTurnPlayer?.Id == null) 
+        { 
+            await Clients.Caller.SendAsync("Error", "Player not found");
+            return;
+        }
+        
+        // Update Players Data
+        await Clients.Client(outOfTurnPlayer.Id).SendAsync("ClientStateUpdate", EClientState.OnTurn);
+        await Clients.Client(outOfTurnPlayer.Id).SendAsync("UpdateBoards", outOfTurnPlayer.Board, outOfTurnPlayer.OpponentBoard);
+
+        // Return updated states to active player
+        await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.WaitingForTurn);
+        await Clients.Caller.SendAsync("UpdateBoards", player.Board, player.OpponentBoard );
+        
+        // Check for a winner
+        var winnerId = session.IsGameOver();
+        if (winnerId!=null)
+        {
+            // TODO: There is a winner. Advance to game over stage.
+            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", EGameState.GameOver);            
+        }
+    }
+
+    // FireAtCell with Permission
+    public async Task RequestShot(string sessionId, int index)
+    {
+        var session = _gameSessionManager.GetSessionById(sessionId);
+        // Early return if session couldn't be found.
+        if (session == null)
+        {
+            await Clients.Caller.SendAsync("Error", "Session Not Found When trying to fire at cell");
+            return;
+        }
+        
+        // Get requester data.
+        var requester = session.GameData.Players.FirstOrDefault(p => p.Id == Context.ConnectionId && p.Id != null);
+        if (requester == null || requester.Id == null)
+        {
+            await Clients.Caller.SendAsync("Error", "Player not found");
+            return;
+        }
+        
+        // If it is the Host requesting the shot, do the shot.
+        if (requester.Id == session.GameData.Players[0].Id)
+        {
+            await ShootAtBoard(sessionId, requester.Id, index);
+            return;
+        }
+        
+        // Send a request for approval to the Host.
+        await RequestShotApproval(sessionId, requester.Id, index);
+        //TODO: Store the pending shot coordinate for the confirmation.
+    }
+    
+    // Handle the Host Approving the Shot from the Guest.
+    public async Task ApproveShot(string sessionId)
+    {
+        // Try getting the session by id.
+        var session = _gameSessionManager.GetSessionById(sessionId);
+        if (session == null )
+        {
+            // Send an error to the caller if the session doesn't exist.
+            await Clients.Caller.SendAsync("Error", "Session Not Found");
+            return;
+        }
+        
+        //
+        var host = session.GameData.Players.FirstOrDefault(p => p.Id == Context.ConnectionId);
+        var guest = session.GameData.Players.FirstOrDefault(p => p.Id != Context.ConnectionId && p.Id != null);
+
+        if (host == null || guest is not { Id: not null })
+        {
+            await Clients.Caller.SendAsync("Error", "Player not found");
+            return;
+        }
+        
+        // Confirm the client is the Host and is currently in Approving Shot state.
+        if(host.ClientState != EClientState.ApprovingShot || host.Id != session.GameData.Players[0].Id)
+        {
+            await Clients.Caller.SendAsync("Error", "Forbidden Action");
+            return;
+        }
+        
+        // Set the Host state back to Waiting for Turn.
+        // await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.WaitingForTurn);
+        // await Clients.Client(guest.Id).SendAsync("ClientStateUpdate", EClientState.ShotApproved);
+        
+        //TODO: Perform the shot using the pending shot index coordinate. Update the respective states.
+        int pendingIndex = 0; // Needs to be implemented. Store it in the game session.
+        string shooterId = "thisidiswrong."; // Implement it
+        await ShootAtBoard(sessionId, shooterId, pendingIndex);
+    }
+
+    // Handles a client requesting a shot approval
+    private async Task RequestShotApproval(string sessionId, string requesterId, int index)
+    {
+        // Try getting the session by id.
+        var session = _gameSessionManager.GetSessionById(sessionId);
+        if (session == null )
+        {
+            // Send an error to the caller if the session doesn't exist.
+            await Clients.Caller.SendAsync("Error", "Session Not Found");
+            return;
+        }
+
+        // Get player requesting approval.
+        var guest = session.GameData.Players.FirstOrDefault(p => p.Id == requesterId);
+        
+        // Get host player.
+        var host = session.GameData.Players.FirstOrDefault(p => p.Id != requesterId && p.Id != null);
+        
+        // Make sure both exist.
+        if (guest == null || host is not {Id: not null}) 
+        {
+            await Clients.Caller.SendAsync("Error", "Player not found");
+            return;
+        }
+        
+        // Confirm It is the Client's turn and the Client is the Guest.
+        if (guest.Id != session.GameData.Players[1].Id || guest.ClientState != EClientState.OnTurn)
+        {
+            await Clients.Caller.SendAsync("Error", "Forbidden Action");
+            return;
+        }
+
+        // Set the Guest PlayerState as pending shot approval.
+        await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.PendingShotApproval);
+        
+        // Set the Host PlayerState as approving shot so that they get a shot approval prompt.
+        await Clients.Client(host.Id).SendAsync("ClientStateUpdate", EClientState.ApprovingShot);
+        await Clients.Client(host.Id).SendAsync("ReceiveIndexToApprove", index);
+    }
+
+    private async Task ShootAtBoard(string sessionId, string shooterId, int index)
+    {
+        var session = _gameSessionManager.GetSessionById(sessionId);
+        // Early return if session couldn't be found.
+        if (session == null)
+        {
+            await Clients.Caller.SendAsync("Error", "Session Not Found When trying to fire at cell");
+            return;
+        }
+        
+        // Is it a valid result?
+        var result = session.FireAtCell(shooterId, index);
+        if (!result)
+        {
+            // Not a valid move. Refuse the command.
+            await Clients.Caller.SendAsync("Error", "Not your turn. You shouldn't be able to fire this turn.");
+            return;
+        }
+        
+        // Get player data.
+        var player = session.GameData.Players.FirstOrDefault(p => p.Id == shooterId);
+        var outOfTurnPlayer = session.GameData.Players.FirstOrDefault(p => p.Id != shooterId && p.Id != null);
         if (player?.Id == null || outOfTurnPlayer?.Id == null) 
         { 
             await Clients.Caller.SendAsync("Error", "Player not found");
