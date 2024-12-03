@@ -78,6 +78,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             await Clients.Caller.SendAsync("SessionNotFound");
             return;
         }
+        
         // Send game and player states to the client
         var player = session.GameData.Players.FirstOrDefault((p)=>p.Id == Context.ConnectionId);
         if (player == null) 
@@ -133,7 +134,8 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             await Clients.Caller.SendAsync("Error", "Game state is not fleet setup.");
             return;
         }
-        Console.WriteLine($"Fleet setup called for session {sessionId}");
+        
+        Console.WriteLine($"Fleet setup called for session {sessionId} with state: {session.GameState}");
         await Clients.Client(Context.ConnectionId)
             .SendAsync("BeginFleetSetup", 
                 session.GameData.RowTags, 
@@ -250,7 +252,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         var winnerId = session.IsGameOver();
         if (winnerId!=null)
         {
-            // TODO: There is a winner. Advance to game over stage.
+            // There is a winner. Advance to game over stage.
             await Clients.Groups(sessionId).SendAsync("GameStateUpdate", EGameState.GameOver);            
         }
     }
@@ -283,7 +285,9 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         
         // Send a request for approval to the Host.
         await RequestShotApproval(sessionId, requester.Id, index);
-        //TODO: Store the pending shot coordinate for the confirmation.
+        
+        // Store the pending shot coordinate for the confirmation.
+        session.ShotIndex = index;
     }
     
     // Handle the Host Approving the Shot from the Guest.
@@ -311,6 +315,7 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         // Confirm the client is the Host and is currently in Approving Shot state.
         if(host.ClientState != EClientState.ApprovingShot || host.Id != session.GameData.Players[0].Id)
         {
+            Console.WriteLine($"Approving shot. USER: {host.Id} with state: {host.ClientState}");
             await Clients.Caller.SendAsync("Error", "Forbidden Action");
             return;
         }
@@ -319,10 +324,8 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         // await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.WaitingForTurn);
         // await Clients.Client(guest.Id).SendAsync("ClientStateUpdate", EClientState.ShotApproved);
         
-        //TODO: Perform the shot using the pending shot index coordinate. Update the respective states.
-        int pendingIndex = 0; // Needs to be implemented. Store it in the game session.
-        string shooterId = "thisidiswrong."; // Implement it
-        await ShootAtBoard(sessionId, shooterId, pendingIndex);
+        // Perform the shot using the pending shot index coordinate. Update the respective states.
+        await ShootAtBoard(sessionId, guest.Id, session.ShotIndex);
     }
 
     // Handles a client requesting a shot approval
@@ -353,16 +356,21 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         // Confirm It is the Client's turn and the Client is the Guest.
         if (guest.Id != session.GameData.Players[1].Id || guest.ClientState != EClientState.OnTurn)
         {
+            Console.WriteLine($"Requesting shot Approval. USER: {guest.Id} with state: {guest.ClientState}");
             await Clients.Caller.SendAsync("Error", "Forbidden Action");
             return;
         }
 
         // Set the Guest PlayerState as pending shot approval.
-        await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.PendingShotApproval);
+        guest.ClientState = EClientState.PendingShotApproval;
+        await Clients.Caller.SendAsync("ClientStateUpdate", guest.ClientState);
         
         // Set the Host PlayerState as approving shot so that they get a shot approval prompt.
-        await Clients.Client(host.Id).SendAsync("ClientStateUpdate", EClientState.ApprovingShot);
-        await Clients.Client(host.Id).SendAsync("ReceiveIndexToApprove", index);
+        host.ClientState = EClientState.ApprovingShot;
+        await Clients.Client(host.Id).SendAsync("ClientStateUpdate", host.ClientState);
+        await Clients.Client(host.Id).SendAsync("ReceiveIndexToApprove", index, session.GameData.ColTags.Length, session.GameData.RowTags.Length);
+        
+        
     }
 
     private async Task ShootAtBoard(string sessionId, string shooterId, int index)
@@ -384,29 +392,32 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             return;
         }
         
-        // Get player data.
-        var player = session.GameData.Players.FirstOrDefault(p => p.Id == shooterId);
-        var outOfTurnPlayer = session.GameData.Players.FirstOrDefault(p => p.Id != shooterId && p.Id != null);
-        if (player?.Id == null || outOfTurnPlayer?.Id == null) 
+        // Get the shooter client
+        var shooterClient = session.GameData.Players.FirstOrDefault(p => p.Id == shooterId);
+        var targetClient = session.GameData.Players.FirstOrDefault(p => p.Id != shooterId);
+        if (shooterClient?.Id == null || targetClient?.Id == null) 
         { 
             await Clients.Caller.SendAsync("Error", "Player not found");
             return;
         }
         
         // Update Players Data
-        await Clients.Client(outOfTurnPlayer.Id).SendAsync("ClientStateUpdate", EClientState.OnTurn);
-        await Clients.Client(outOfTurnPlayer.Id).SendAsync("UpdateBoards", outOfTurnPlayer.Board, outOfTurnPlayer.OpponentBoard);
+        targetClient.ClientState = EClientState.OnTurn;
+        await Clients.Client(targetClient.Id).SendAsync("ClientStateUpdate", targetClient.ClientState);
+        await Clients.Client(targetClient.Id).SendAsync("UpdateBoards", targetClient.Board, targetClient.OpponentBoard);
 
         // Return updated states to active player
-        await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.WaitingForTurn);
-        await Clients.Caller.SendAsync("UpdateBoards", player.Board, player.OpponentBoard );
+        shooterClient.ClientState = EClientState.WaitingForTurn;
+        await Clients.Client(shooterClient.Id).SendAsync("ClientStateUpdate", shooterClient.ClientState);
+        await Clients.Client(shooterClient.Id).SendAsync("UpdateBoards", shooterClient.Board, shooterClient.OpponentBoard);
         
         // Check for a winner
         var winnerId = session.IsGameOver();
         if (winnerId!=null)
         {
-            // TODO: There is a winner. Advance to game over stage.
-            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", EGameState.GameOver);            
+            // There is a winner. Advance to game over stage.
+            session.GameState = EGameState.GameOver;
+            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", session.GameState);            
         }
     }
 }

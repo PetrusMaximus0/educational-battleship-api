@@ -20,6 +20,9 @@ public class GameSession(string[] rowTags, string[] colTags) : IGameSession
     // Store the current Game State.
     public EGameState GameState { get; set; } = EGameState.Lobby;
     
+    // Store a pending shot from the Guest.
+    public int ShotIndex { get; set; } = -1;
+    
     // Store the ship pool.
     public ShipData[]? ShipPool { get; private set; } = GameSetup.GetNewShipPool(rowTags.Length, colTags.Length );
 

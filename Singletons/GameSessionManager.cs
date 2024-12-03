@@ -45,7 +45,7 @@ public class GameSessionManager : IGameSessionManager
     {
         // Get a reference to the session containing a client with this id. Stop execution if no session is found.
         var session = _gameSessions.Values.FirstOrDefault(sess=>sess.GameData.Players.Any(player=>player.Id == clientId));
-        if (session == null) {return;}
+        if (session == null) return;
         
         // Set this client ID null in the session, to signal the client is no longer connected to the session.
         var player = session.GameData.Players.FirstOrDefault(p => p.Id == clientId);
