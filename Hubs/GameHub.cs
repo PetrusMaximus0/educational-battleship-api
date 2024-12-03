@@ -154,34 +154,54 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             await Clients.Caller.SendAsync("Error", "Session Not Found");
             return;
         }
-        
-        // Return feedback of placement to client.
-        // When result is true, the placement is valid
-        bool result = session.PlaceFleet(Context.ConnectionId, shipData);
-        Console.WriteLine($"Fleet Setup Validation result: {result}");
-
-        if (!result)
+       
+        // Obtain a reference to the client validating the fleet placement.
+        var client = session.GameData.Players.FirstOrDefault((p) => p.Id == Context.ConnectionId && p.Id != null);
+        if (client == null || client.Id == null)
         {
             await Clients.Caller.SendAsync("Error", "Fleet Setup Validation failed");
             return;
         }
         
-        await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.FleetReady, "Fleet Setup Complete!");
-        if (result && session.IsSetupComplete())
+        // Return feedback of placement to client.
+        // When result is true, the placement is valid
+        bool result = session.PlaceFleet(Context.ConnectionId, shipData);
+        if (result == false)
         {
-            Console.WriteLine($"Ship Placement Complete");
-            // Set ongoing game state for all players.
-            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", EGameState.GameOnGoing, "Game Ongoing");
-            
-            // First player is the one who finished placing ships first.
-            await Clients.Caller.SendAsync("ClientStateUpdate", EClientState.OnTurn);
-            
-            // Set the other player as waiting for their turn.
-            var otherPlayer = session.GameData.Players.FirstOrDefault((p)=>p.Id != Context.ConnectionId);
-            if (otherPlayer?.Id == null) await Clients.Groups(sessionId).SendAsync("Error", "Player not found");
-            await Clients.Client(otherPlayer!.Id!).SendAsync("ClientStateUpdate", EClientState.WaitingForTurn);
+            await Clients.Caller.SendAsync("Error", "Fleet Setup Validation failed");
+            return;
         }
+
+        // Exit execution if the setup is not yet complete.
+        if (!session.IsSetupComplete())
+        {
+            client.ClientState = EClientState.FleetReady;
+            await Clients.Caller.SendAsync("ClientStateUpdate", client.ClientState, "Fleet Setup Complete!");
+            return;
+        }
+
+        // The fleet set up is complete for both players.
+
+        // Get a reference to the other player.
+        var otherClient = session.GameData.Players.FirstOrDefault((p)=>p.Id != Context.ConnectionId);
+        if (otherClient == null || otherClient.Id == null)
+        {
+            await Clients.Groups(sessionId).SendAsync("Error", "Player not found");
+            return;
+        }
+
+        // Set the other client as onTurn since they finished first.
+        otherClient.ClientState = EClientState.OnTurn;
+        client.ClientState = EClientState.WaitingForTurn;
+        // Set the game State to ongoing since the fleet setup is complete.
+        session.GameState = EGameState.GameOnGoing;
+        
+        // Send the updated game and client states.
+        await Clients.Client(otherClient.Id).SendAsync("ClientStateUpdate", otherClient.ClientState, "Game Ongoing!");
+        await Clients.Client(client.Id).SendAsync("ClientStateUpdate", client.ClientState, "Game Ongoing!");
+        await Clients.Groups(sessionId).SendAsync("GameStateUpdate", session.GameState, "Game Ongoing!");
     }
+    
     public async Task BeginGame(string sessionId)
     {
         Console.WriteLine($"Beginning Game Session: {sessionId}");
@@ -257,6 +277,22 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
         }
     }
 
+    // Client Request for Redoing the Fleet Placement.
+    public async Task CancelFleetPlacement(string sessionId)
+    {
+        // Return if session not found or not in Fleet Setup Phase
+        var session = _gameSessionManager.GetSessionById(sessionId);
+        if (session is not { GameState: EGameState.FleetSetup }) return;
+        
+        // 
+        var player = session.GameData.Players.FirstOrDefault(p=>p.Id == Context.ConnectionId);
+        if (player == null) return;
+        
+        Console.WriteLine($"User{Context.ConnectionId} Canceling Fleet Placement Session: {sessionId}");
+        player.ClientState = EClientState.FleetSetup;
+        await Clients.Caller.SendAsync("ClientStateUpdate", player.ClientState, "Setting up Fleet");
+    }
+    
     // FireAtCell with Permission
     public async Task RequestShot(string sessionId, int index)
     {
