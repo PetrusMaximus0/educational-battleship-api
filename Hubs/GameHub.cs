@@ -437,23 +437,38 @@ public class GameHub(IGameSessionManager gameSessionManager) : Hub
             return;
         }
         
-        // Update Players Data
-        targetClient.ClientState = EClientState.OnTurn;
-        await Clients.Client(targetClient.Id).SendAsync("ClientStateUpdate", targetClient.ClientState);
-        await Clients.Client(targetClient.Id).SendAsync("UpdateBoards", targetClient.Board, targetClient.OpponentBoard);
-
-        // Return updated states to active player
-        shooterClient.ClientState = EClientState.WaitingForTurn;
-        await Clients.Client(shooterClient.Id).SendAsync("ClientStateUpdate", shooterClient.ClientState);
-        await Clients.Client(shooterClient.Id).SendAsync("UpdateBoards", shooterClient.Board, shooterClient.OpponentBoard);
-        
         // Check for a winner
         var winnerId = session.IsGameOver();
         if (winnerId!=null)
         {
             // There is a winner. Advance to game over stage.
+            targetClient.ClientState = EClientState.Defeated;
+            shooterClient.ClientState = EClientState.Victor;
+            
+            //
             session.GameState = EGameState.GameOver;
-            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", session.GameState);            
+            await Clients.Groups(sessionId).SendAsync("GameStateUpdate", session.GameState);
+            
+            // Update Players Data
+            await Clients.Client(targetClient.Id).SendAsync("ClientStateUpdate", targetClient.ClientState);
+            await Clients.Client(targetClient.Id).SendAsync("UpdateBoards", targetClient.Board, shooterClient.Board);
+
+            // Return updated states to active player
+            await Clients.Client(shooterClient.Id).SendAsync("ClientStateUpdate", shooterClient.ClientState);
+            await Clients.Client(shooterClient.Id).SendAsync("UpdateBoards", shooterClient.Board, targetClient.Board);
+            
+        }else{
+            targetClient.ClientState = EClientState.OnTurn;
+            shooterClient.ClientState = EClientState.WaitingForTurn;
+            
+            // Update Players Data
+            await Clients.Client(targetClient.Id).SendAsync("ClientStateUpdate", targetClient.ClientState);
+            await Clients.Client(targetClient.Id).SendAsync("UpdateBoards", targetClient.Board, targetClient.OpponentBoard);
+
+            // Return updated states to active player
+            await Clients.Client(shooterClient.Id).SendAsync("ClientStateUpdate", shooterClient.ClientState);
+            await Clients.Client(shooterClient.Id).SendAsync("UpdateBoards", shooterClient.Board, shooterClient.OpponentBoard);
         }
+        
     }
 }

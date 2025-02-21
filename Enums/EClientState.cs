@@ -8,4 +8,6 @@ public enum EClientState
     OnTurn,
     ApprovingShot,
     PendingShotApproval,
+    Defeated,
+    Victor,
 }
