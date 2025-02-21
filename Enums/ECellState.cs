@@ -9,5 +9,5 @@ public enum ECellState
     hit,
     ship,
     miss,
-    sunk
+    revealed,
 }

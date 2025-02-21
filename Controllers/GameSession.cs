@@ -74,6 +74,7 @@ public class GameSession(string[] rowTags, string[] colTags) : IGameSession
         else // The shot is a MISS.
         {
             player.OpponentBoard![index].State = ECellState.miss;
+            opponent.Board![index].State = ECellState.miss;
         }
 
         return true;
@@ -95,7 +96,7 @@ public class GameSession(string[] rowTags, string[] colTags) : IGameSession
             CellData[] newBoardData = GameSetup.GetEmptyBoard(GameData.BoardHeight, GameData.BoardWidth);
 
             // Initialize every cell state with miss so that the cell is discovered.
-            foreach (var cell in newBoardData) cell.State = ECellState.miss;
+            foreach (var cell in newBoardData) cell.State = ECellState.revealed;
         
             // Use ship information to populate cells.
             foreach (var ship in ships)
@@ -136,4 +137,5 @@ public class GameSession(string[] rowTags, string[] colTags) : IGameSession
         bool opBoardSet = GameData.Players.All(player => player.OpponentBoard != null);
         return fleetSet && boardSet && opBoardSet;
     }
+    
 }
